@@ -6,9 +6,12 @@
 #include <QTimer>
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QInputDialog>
+#include <fstream>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 
+using namespace std;
 namespace Ui {
 class MainWindow;
 }
@@ -37,6 +40,8 @@ public:
 private:
 //    QTimer *timer;
     QSerialPort *serial;
+    ofstream fout;
+    QString fileName;
 //    QByteArray serialData;
     Settings updataSettings();
     void fillPortsParameters();
@@ -53,6 +58,7 @@ private slots:
     void handleTimeout();
     void clearRecvMsg();
     void clearSendMsg();
+    void saveFileName(bool);
     void handleError(QSerialPort::SerialPortError error);
 };
 

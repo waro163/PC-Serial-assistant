@@ -8,7 +8,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
     serial = new QSerialPort(this);
 //    timer = new QTimer(this);
     connect(serial, SIGNAL(error(QSerialPort::SerialPortError)), this,
@@ -19,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->sendButton,SIGNAL(clicked(bool)),this,SLOT(sendData()));
     connect(ui->clearRecvButton,SIGNAL(clicked(bool)),this,SLOT(clearRecvMsg()));
     connect(ui->clearSendButton,SIGNAL(clicked(bool)),this,SLOT(clearSendMsg()));
+    connect(ui->saveFilecheckBox,SIGNAL(toggled(bool)),this,SLOT(saveFileName(bool)));
 //    connect(timer,SIGNAL(timeout()),this,SLOT(handleTimeout()));
     fillPortsParameters();
     fillPortsInfo();
@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
 //    delete timer;
+    fout.close();
     delete serial;
     delete ui;
 }
@@ -138,6 +139,9 @@ void MainWindow::openSerialPort()
         ui->openButton->setText(tr("打开"));
         ui->statusBar->showMessage(tr("Disconnected"));
         enableConfigPortsParameters();
+        if(fout.is_open()){
+            fout.close();
+        }
     }
     else{
         serial->setPortName(p.name);
@@ -157,6 +161,13 @@ void MainWindow::openSerialPort()
             QMessageBox::critical(this, tr("Error"), serial->errorString());
             ui->statusBar->showMessage(tr("Open error"));
         }
+        if(ui->saveFilecheckBox->isChecked()){
+            fout.open(fileName.toLocal8Bit(),iostream::app);
+            if(!fout.is_open()){
+                QMessageBox::warning(this,"warn","open file error",QMessageBox::Ok);
+                fout.close();
+            }
+        }
     }
 //        ui->serialGroupBox->setDisabled(true);
 }
@@ -166,13 +177,16 @@ void MainWindow::readData()
 //    while (serial->waitForReadyRead(900))
 //        data.append(serial->readAll());
     if(ui->hexRecvcheckBox->isChecked()){
-        ui->recvPlainTextEdit->appendPlainText(QString(data.toHex()));//->appendPlainText(QString(data));
+        data = data.toHex();
     }
-    else{
-        ui->recvPlainTextEdit->appendPlainText(QString(data));
+    ui->recvPlainTextEdit->insertPlainText(QString(data));//;//->appendPlainText(QString(data));
+    ui->recvPlainTextEdit->setTextCursor(ui->recvPlainTextEdit->textCursor());
+    if(ui->saveFilecheckBox->isChecked()){
+        fout<<data.toStdString();
+        fout<<flush;
     }
 
-    qDebug()<<QString(data.toHex());
+//    qDebug()<<QString(data.toHex());
 //    QTextCodec *tc = QTextCodec::codecForName("GBK");
 //    QString s = tc->toUnicode(data);
 //    qDebug()<<s;
@@ -196,4 +210,13 @@ void MainWindow::clearRecvMsg()
 void MainWindow::clearSendMsg()
 {
     ui->sendTextEdit->clear();
+}
+
+void MainWindow::saveFileName(bool flag)
+{
+    if(flag){
+        fileName = QInputDialog::getText(this,"保存文件名称","输入文件名称",QLineEdit::Normal,"log");
+    }
+    fileName += ".txt";
+//    qDebug()<<fileName;
 }
